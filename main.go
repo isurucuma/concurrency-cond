@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 //func main() {
@@ -43,24 +44,47 @@ import (
 //	fmt.Println("Spendy Done")
 //}
 
-func doWork(cond *sync.Cond) {
-	fmt.Println("Work started")
-	fmt.Println("Work done")
-	cond.L.Lock()
-	cond.Signal()
-	cond.L.Unlock()
-}
+//func doWork(cond *sync.Cond) {
+//	fmt.Println("Work started")
+//	fmt.Println("Work done")
+//	cond.L.Lock()
+//	cond.Signal()
+//	cond.L.Unlock()
+//}
+
+//func main() {
+//	m := sync.Mutex{}
+//	cond := sync.NewCond(&m)
+//	cond.L.Lock()
+//	for i := 0; i < 50000; i++ {
+//		go doWork(cond)
+//		fmt.Println("Waiting for child work to finish")
+//		cond.Wait()
+//		fmt.Println("Child work finished")
+//	}
+//	cond.L.Unlock()
+//	fmt.Println("All work done")
+//}
 
 func main() {
-	m := sync.Mutex{}
-	cond := sync.NewCond(&m)
+	playersRemaining := 4
+	cond := sync.NewCond(&sync.Mutex{})
+	for i := 0; i < 4; i++ {
+		go playerHandler(cond, &playersRemaining, i)
+		time.Sleep(1 * time.Second)
+	}
+	fmt.Println("All players are ready")
+}
+
+func playerHandler(cond *sync.Cond, playersRemaining *int, playerId int) {
 	cond.L.Lock()
-	for i := 0; i < 50000; i++ {
-		go doWork(cond)
-		fmt.Println("Waiting for child work to finish")
+	fmt.Println("Player", playerId, "is ready")
+	*playersRemaining--
+	if *playersRemaining == 0 {
+		cond.Broadcast()
+	}
+	if *playersRemaining > 0 {
 		cond.Wait()
-		fmt.Println("Child work finished")
 	}
 	cond.L.Unlock()
-	fmt.Println("All work done")
 }
