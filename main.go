@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"sync"
-	"time"
 )
 
 //func main() {
@@ -66,25 +65,69 @@ import (
 //	fmt.Println("All work done")
 //}
 
-func main() {
-	playersRemaining := 4
-	cond := sync.NewCond(&sync.Mutex{})
-	for i := 0; i < 4; i++ {
-		go playerHandler(cond, &playersRemaining, i)
-		time.Sleep(1 * time.Second)
-	}
-	fmt.Println("All players are ready")
+//func main() {
+//	playersRemaining := 4
+//	cond := sync.NewCond(&sync.Mutex{})
+//	for i := 0; i < 4; i++ {
+//		go playerHandler(cond, &playersRemaining, i)
+//		time.Sleep(1 * time.Second)
+//	}
+//	fmt.Println("All players are ready")
+//}
+//
+//func playerHandler(cond *sync.Cond, playersRemaining *int, playerId int) {
+//	cond.L.Lock()
+//	fmt.Println("Player", playerId, "is ready")
+//	*playersRemaining--
+//	if *playersRemaining == 0 {
+//		cond.Broadcast()
+//	}
+//	if *playersRemaining > 0 {
+//		cond.Wait()
+//	}
+//	cond.L.Unlock()
+//}
+
+type Semaphore struct {
+	permits int
+	cond    *sync.Cond
 }
 
-func playerHandler(cond *sync.Cond, playersRemaining *int, playerId int) {
-	cond.L.Lock()
-	fmt.Println("Player", playerId, "is ready")
-	*playersRemaining--
-	if *playersRemaining == 0 {
-		cond.Broadcast()
+func NewSemaphore(permits int) *Semaphore {
+	return &Semaphore{
+		permits: permits,
+		cond:    sync.NewCond(&sync.Mutex{}),
 	}
-	if *playersRemaining > 0 {
-		cond.Wait()
+}
+
+func (s *Semaphore) Acquire() {
+	s.cond.L.Lock()
+	for s.permits <= 0 {
+		s.cond.Wait()
 	}
-	cond.L.Unlock()
+	s.permits--
+	s.cond.L.Unlock()
+}
+
+func (s *Semaphore) Release() {
+	s.cond.L.Lock()
+	s.permits++
+	s.cond.Signal()
+	s.cond.L.Unlock()
+}
+
+func main() {
+	sem := NewSemaphore(0)
+	for i := 0; i < 5; i++ {
+		go doWork(sem)
+		fmt.Println("Waiting for work to be done")
+		sem.Acquire()
+		fmt.Println("Child work done")
+	}
+}
+
+func doWork(sem *Semaphore) {
+	fmt.Println("Work started")
+	fmt.Println("Work done")
+	sem.Release()
 }
