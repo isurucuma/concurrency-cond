@@ -43,6 +43,7 @@ import (
 //	fmt.Println("Spendy Done")
 //}
 
+// in this we have used the mutex to lock the condition variable before Signalling so that after the wait() hit only the signal() will be executed
 //func doWork(cond *sync.Cond) {
 //	fmt.Println("Work started")
 //	fmt.Println("Work done")
@@ -50,7 +51,7 @@ import (
 //	cond.Signal()
 //	cond.L.Unlock()
 //}
-
+//
 //func main() {
 //	m := sync.Mutex{}
 //	cond := sync.NewCond(&m)
@@ -65,6 +66,9 @@ import (
 //	fmt.Println("All work done")
 //}
 
+// here in this example we are using the condition variable to wait for all players to be ready before starting the game
+// here use of Broadcast is important as it will cause all the waiting goroutines to wake up, if we use signal then only
+// one goroutine will wake up and the others will still be waiting
 //func main() {
 //	playersRemaining := 4
 //	cond := sync.NewCond(&sync.Mutex{})
